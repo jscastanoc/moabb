@@ -1,10 +1,10 @@
 import logging
 from time import time
-
+import pdb
 import numpy as np
 from copy import deepcopy
 from sklearn.model_selection import (cross_val_score, LeaveOneGroupOut,
-                                     StratifiedKFold)
+                                     StratifiedKFold, KFold)
 from sklearn.preprocessing import LabelEncoder
 
 from moabb.evaluations.base import BaseEvaluation
@@ -34,7 +34,7 @@ class WithinSessionEvaluation(BaseEvaluation):
 
             # get the data
             X, y, metadata = self.paradigm.get_data(dataset, [subject])
-
+            #pdb.set_trace()
             # iterate over sessions
             for session in np.unique(metadata.session):
                 ix = metadata.session == session
@@ -51,7 +51,7 @@ class WithinSessionEvaluation(BaseEvaluation):
                            'session': session,
                            'score': score,
                            'n_samples': len(y[ix]),  # not training sample
-                           'n_channels': X.shape[1],
+                           'n_channels': -1, # doesnt work for the freq-domain algorithms
                            'pipeline': name}
 
                     yield res
@@ -190,3 +190,21 @@ class CrossSubjectEvaluation(BaseEvaluation):
 
     def is_valid(self, dataset):
         return (len(dataset.subject_list) > 1)
+    
+class WithinSessionEvaluationCV(WithinSessionEvaluation):
+    """
+    Same as parent class but allows to set custom crossvalidation
+    """
+    def __init__(self, cv=KFold(n_splits=5), **kwargs):
+        super().__init__( **kwargs)
+        self.cv = cv
+        
+    def score(self, clf, X, y, scoring):
+        
+        cv = self.cv
+        y = np.squeeze(y)
+        
+        #pdb.set_trace()
+        acc = cross_val_score(clf, X, y, cv=cv, scoring=scoring,
+                              n_jobs=self.n_jobs)
+        return acc.mean()
