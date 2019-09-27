@@ -374,3 +374,23 @@ class FakeImageryParadigm(LeftRightImagery):
     @property
     def datasets(self):
         return [FakeDataset(['left_hand', 'right_hand'], paradigm='imagery')]
+    
+class BaseClassificationFrequencyDomain(BaseRegressionFrequencyDomain):
+    def get_labels(self, raw):
+        events = mne.find_events(raw, shortest_event=0, verbose=False)
+        event_id = self.used_events(dataset)
+        
+        events = mne.pick_events(events, include=list(event_id.values()))
+        
+        labels = events[:,-1]
+        return labels
+    
+    def is_valid(self, dataset):
+        return BaseMotorImagery.is_valid(self, dataset)
+    
+    def datasets(self):
+        return BaseMotorImagery.datasets(self)
+    
+    @property
+    def scoring(self):
+        return 'accuracy'
